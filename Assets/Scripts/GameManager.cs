@@ -82,14 +82,15 @@ public class GameManager : MonoBehaviour
 
     void CreateMazeFromData()
     {
+        GameObject oEmpty = new GameObject();
         foreach (Cell c in vMapRepresentation)
         {
-            GameObject oGameObject = Instantiate(new GameObject(), new Vector3(c.vPos.x, 1, c.vPos.y), Quaternion.identity, null);
-            bool bRight = (c.eWalls & CardinalDirs.Right) != CardinalDirs.None;
-            bool bLeft = (c.eWalls & CardinalDirs.Left) != CardinalDirs.None;
-            bool bUp = (c.eWalls & CardinalDirs.Up) != CardinalDirs.None;
-            bool bDown = (c.eWalls & CardinalDirs.Down) != CardinalDirs.None;
-            bool bNone = (c.eWalls == CardinalDirs.None);
+            GameObject oGameObject = Instantiate(oEmpty, new Vector3(c.vPos.x, 1, c.vPos.y), Quaternion.identity, null);
+            bool bRight =   (c.eWalls & CardinalDirs.Right) != CardinalDirs.None;
+            bool bLeft =    (c.eWalls & CardinalDirs.Left) != CardinalDirs.None;
+            bool bUp =      (c.eWalls & CardinalDirs.Up) != CardinalDirs.None;
+            bool bDown =    (c.eWalls & CardinalDirs.Down) != CardinalDirs.None;
+            bool bNone =    (c.eWalls == CardinalDirs.None);
 
             if (bRight)
             {
@@ -99,7 +100,7 @@ public class GameManager : MonoBehaviour
             {
                 AttachWallToGameObject(CardinalDirs.Left, oGameObject, c.bDeadEnd);
             }
-            if (bUp )
+            if (bUp)
             {
                 AttachWallToGameObject(CardinalDirs.Up, oGameObject, c.bDeadEnd);
             }
