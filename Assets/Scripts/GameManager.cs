@@ -20,17 +20,22 @@ public class GameManager : MonoBehaviour
         public CardinalDirs eWalls { get; set; }
         public Vector2Int vPos { get; set; }
         public bool bDeadEnd;
+        public List<Cell> vNeigbors;
         public Cell()
         {
             eWalls = (CardinalDirs.Up | CardinalDirs.Down | CardinalDirs.Left | CardinalDirs.Right);
+            vNeigbors = new List<Cell>(4);
+            vNeigbors.Clear();
         }
     }
 
     public int iDimensions;
-    public GameObject RightWall;
-    public GameObject LeftWall;
-    public GameObject UpWall;
-    public GameObject DownWall;
+    public GameObject oRightWall;
+    public GameObject oLeftWall;
+    public GameObject oUpWall;
+    public GameObject oDownWall;
+    public GameObject oFloor;
+    public GameObject oPlayer;
     float fMaxX;
     float fMaxZ;
     float fMinX;
@@ -38,22 +43,23 @@ public class GameManager : MonoBehaviour
     int Width;
     static int NumberOfDirections = 4;
     const float fMinWallWidth = 0.25f;
-    List<GameObject> vCubesInMap = new List<GameObject>();
-    List<Cell> vStack = new List<Cell>();
+    List<Cell> vStack;
     List<Cell> vMapRepresentation = new List<Cell>();
-    List<Cell> vData = new List<Cell>();
     CardinalDirs[] vDirections = { CardinalDirs.Up, CardinalDirs.Down, CardinalDirs.Left, CardinalDirs.Right };
     System.Random rng = new System.Random();
-    List<Cell> vNeighBorsList = new List<Cell>();
-
-    // Start is called before the first frame update
-    void Start()
+    Cell up = null;
+    Cell down = null;
+    Cell right = null;
+    Cell left = null;
+    Cell oNextCell = null;
+    private void Awake()
     {
         fMaxX = iDimensions;
         fMaxZ = iDimensions;
         fMinX = 0;
         fMinZ = 0;
         Width = (int)(fMaxX - fMinX);
+        vStack = new List<Cell>(Width * Width);
         for (int x = (int)fMinX; x < (int)fMaxX; x++)
         {
             for (int z = (int)fMinZ; z < (int)fMaxZ; z++)
@@ -63,14 +69,19 @@ public class GameManager : MonoBehaviour
                     Cell obj = new Cell();
                     obj.vPos = new Vector2Int(x, z);
                     vMapRepresentation.Add(obj);
-
                 }
             }
         }
+    }
+
+    // Start is called before the first frame update
+    void Start()
+    {
         Cell oStartingCell = vMapRepresentation[Random.Range(0, vMapRepresentation.Count - 1)];
         oStartingCell.bVisited = true;
-        RecursiveBackTracking(oStartingCell, (int)fMaxX, (int)fMaxZ, (int)fMinX, (int)fMinZ);
+        RecursiveBackTracking(oStartingCell);
         CreateMazeFromData();
+        oPlayer.transform.position = new Vector3(oStartingCell.vPos.x, 1, oStartingCell.vPos.y);
     }
 
 
@@ -86,11 +97,11 @@ public class GameManager : MonoBehaviour
         foreach (Cell c in vMapRepresentation)
         {
             GameObject oGameObject = Instantiate(oEmpty, new Vector3(c.vPos.x, 1, c.vPos.y), Quaternion.identity, null);
-            bool bRight =   (c.eWalls & CardinalDirs.Right) != CardinalDirs.None;
-            bool bLeft =    (c.eWalls & CardinalDirs.Left) != CardinalDirs.None;
-            bool bUp =      (c.eWalls & CardinalDirs.Up) != CardinalDirs.None;
-            bool bDown =    (c.eWalls & CardinalDirs.Down) != CardinalDirs.None;
-            bool bNone =    (c.eWalls == CardinalDirs.None);
+            bool bRight = (c.eWalls & CardinalDirs.Right) != CardinalDirs.None;
+            bool bLeft = (c.eWalls & CardinalDirs.Left) != CardinalDirs.None;
+            bool bUp = (c.eWalls & CardinalDirs.Up) != CardinalDirs.None;
+            bool bDown = (c.eWalls & CardinalDirs.Down) != CardinalDirs.None;
+            bool bNone = (c.eWalls == CardinalDirs.None);
 
             if (bRight)
             {
@@ -109,102 +120,100 @@ public class GameManager : MonoBehaviour
                 AttachWallToGameObject(CardinalDirs.Down, oGameObject, c.bDeadEnd);
             }
         }
+        oFloor.transform.position = new Vector3(Width * 0.5f, 0, Width * 0.5f);
+        oFloor.transform.localScale = new Vector3(Width, 1f, Width);
     }
 
     void AttachWallToGameObject(CardinalDirs _eDir, GameObject _oGObj, bool _bDeadEnd)
-
     {
         GameObject W = null;
         switch (_eDir)
         {
             case CardinalDirs.Up:
-                W = Instantiate(UpWall, _oGObj.transform);
+                W = Instantiate(oUpWall, _oGObj.transform);
                 W.GetComponent<Renderer>().material.color = Color.red;
                 break;
             case CardinalDirs.Down:
-                W = Instantiate(DownWall, _oGObj.transform);
+                W = Instantiate(oDownWall, _oGObj.transform);
                 W.GetComponent<Renderer>().material.color = Color.red;
 
                 break;
             case CardinalDirs.Left:
-                W = Instantiate(LeftWall, _oGObj.transform);
+                W = Instantiate(oLeftWall, _oGObj.transform);
                 W.GetComponent<Renderer>().material.color = Color.red;
 
                 break;
             case CardinalDirs.Right:
-                W = Instantiate(RightWall, _oGObj.transform);
+                W = Instantiate(oRightWall, _oGObj.transform);
                 W.GetComponent<Renderer>().material.color = Color.red;
                 break;
         }
 
     }
-
-    void RecursiveBackTracking(Cell _oStartingCell, int _iMaxX, int _iMaxY, int _iMinX, int _iMinY)
+    void RecursiveBackTracking(Cell _oStartingCell)
     {
         CardinalDirs[] vDirectionsToCheck = this.vDirections;
         Shuffle<CardinalDirs>(vDirections);
         _oStartingCell.bVisited = true;
-        getNeighbors(_oStartingCell);
-        List<Cell> vNeighBors = vNeighBorsList;
-        bool bHasNeighBors = false;
-        foreach (Cell v in vNeighBors)
+        if (_oStartingCell.vNeigbors.Count <= 0)
+            getNeighbors(_oStartingCell);
+        bool bHasNotCheckedNeighbors = false;
+        for (uint i = 0; i < _oStartingCell.vNeigbors.Count; i++)
         {
-            if (v != null)
-                bHasNeighBors = true;
+            if (_oStartingCell.vNeigbors[(int)i] != null)
+                bHasNotCheckedNeighbors = true;
         }
-        Cell oNextCell = null;
-        if (bHasNeighBors)
+        oNextCell = null;
+        if (bHasNotCheckedNeighbors)
         {
             vStack.Add(_oStartingCell);
             int iCardinalIdx = 0;
             while (iCardinalIdx < NumberOfDirections)
             {
-                CardinalDirs eDir = vDirectionsToCheck[iCardinalIdx];
-                iCardinalIdx++;
-                switch (eDir)
+                switch (vDirectionsToCheck[iCardinalIdx])
                 {
                     //NEIGHBORS POSITIONS IN THE LIST ARE HARDCODED BECAUSE WE KNOW EXACTLY WHERE EXACTLY A CELL IS (Watch getNeighbors())
                     case CardinalDirs.Up:
-                        if (vNeighBors[0] != null && vNeighBors[0].bVisited == false)
+                        if (_oStartingCell.vNeigbors[0] != null && _oStartingCell.vNeigbors[0].bVisited == false)
                         {
-                            oNextCell = vNeighBors[0];
+                            oNextCell = _oStartingCell.vNeigbors[0];
                             oNextCell.eWalls &= ~CardinalDirs.Down;
                             _oStartingCell.eWalls &= ~CardinalDirs.Up;
-                            RecursiveBackTracking(oNextCell, (int)fMaxX, (int)fMaxZ, (int)fMinX, (int)fMinZ);
+                            RecursiveBackTracking(oNextCell);
                         }
                         break;
                     case CardinalDirs.Down:
-                        if (vNeighBors[1] != null && vNeighBors[1].bVisited == false)
+                        if (_oStartingCell.vNeigbors[1] != null && _oStartingCell.vNeigbors[1].bVisited == false)
                         {
-                            oNextCell = vNeighBors[1];
+                            oNextCell = _oStartingCell.vNeigbors[1];
 
                             oNextCell.eWalls &= ~CardinalDirs.Up;
                             _oStartingCell.eWalls &= ~CardinalDirs.Down;
-                            RecursiveBackTracking(oNextCell, (int)fMaxX, (int)fMaxZ, (int)fMinX, (int)fMinZ);
+                            RecursiveBackTracking(oNextCell);
                         }
                         break;
                     case CardinalDirs.Right:
-                        if (vNeighBors[2] != null && vNeighBors[2].bVisited == false)
+                        if (_oStartingCell.vNeigbors[2] != null && _oStartingCell.vNeigbors[2].bVisited == false)
                         {
-                            oNextCell = vNeighBors[2];
+                            oNextCell = _oStartingCell.vNeigbors[2];
                             _oStartingCell.eWalls &= ~CardinalDirs.Right;
                             oNextCell.eWalls &= ~CardinalDirs.Left;
-                            RecursiveBackTracking(oNextCell, (int)fMaxX, (int)fMaxZ, (int)fMinX, (int)fMinZ);
+                            RecursiveBackTracking(oNextCell);
                         }
                         break;
                     case CardinalDirs.Left:
-                        if (vNeighBors[3] != null && vNeighBors[3].bVisited == false)
+                        if (_oStartingCell.vNeigbors[3] != null && _oStartingCell.vNeigbors[3].bVisited == false)
                         {
-                            oNextCell = vNeighBors[3];
+                            oNextCell = _oStartingCell.vNeigbors[3];
                             _oStartingCell.eWalls &= ~CardinalDirs.Left;
                             oNextCell.eWalls &= ~CardinalDirs.Right;
-                            RecursiveBackTracking(oNextCell, (int)fMaxX, (int)fMaxZ, (int)fMinX, (int)fMinZ);
+                            RecursiveBackTracking(oNextCell);
 
                         }
                         break;
                 }
+                iCardinalIdx++;
             }
-
         }
         else
         {
@@ -214,18 +223,18 @@ public class GameManager : MonoBehaviour
                 oNextCell = Pop<Cell>(vStack);
             }
             if (oNextCell != null)
-                RecursiveBackTracking(oNextCell, (int)fMaxX, (int)fMaxZ, (int)fMinX, (int)fMinZ);
+                RecursiveBackTracking(oNextCell);
         }
-
     }
 
     void Shuffle<T>(IList<T> _vListToShuffle)
     {
         int n = _vListToShuffle.Count;
+        int k = 0;
         while (n > 1)
         {
             n--;
-            int k = rng.Next(n + 1);
+            k = rng.Next(n + 1);
             T value = _vListToShuffle[k];
             _vListToShuffle[k] = _vListToShuffle[n];
             _vListToShuffle[n] = value;
@@ -234,11 +243,10 @@ public class GameManager : MonoBehaviour
 
     void getNeighbors(Cell _oCell)
     {
-        vNeighBorsList.Clear();
-        Cell up = null;
-        Cell down = null;
-        Cell right = null;
-        Cell left = null;
+        up = null;
+        down = null;
+        right = null;
+        left = null;
         if (_oCell.vPos.y + 1 < Width)
             up = GetCell(_oCell.vPos.x, _oCell.vPos.y + 1);
         if (_oCell.vPos.y - 1 >= 0)
@@ -248,10 +256,10 @@ public class GameManager : MonoBehaviour
         if (_oCell.vPos.x - 1 >= 0)
             left = GetCell(_oCell.vPos.x - 1, _oCell.vPos.y);
 
-        vNeighBorsList.Add((up != null && up.bVisited == false) ? up : null);
-        vNeighBorsList.Add(down != null && down.bVisited == false ? down : null);
-        vNeighBorsList.Add(right != null && right.bVisited == false ? right : null);
-        vNeighBorsList.Add(left != null && left.bVisited == false ? left : null);
+        _oCell.vNeigbors.Add((up != null && up.bVisited == false) ? up : null);
+        _oCell.vNeigbors.Add(down != null && down.bVisited == false ? down : null);
+        _oCell.vNeigbors.Add(right != null && right.bVisited == false ? right : null);
+        _oCell.vNeigbors.Add(left != null && left.bVisited == false ? left : null);
     }
 
     Cell GetCell(int row, int col)
