@@ -263,7 +263,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.1
   far clip plane: 1000
   field of view: 60
   orthographic: 0
@@ -327,10 +327,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7012cc8616594074ab101c914e004e00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 6
-  jumpSpeed: 8
-  gravity: 20
-  rotSpeed: 90
+  fSpeed: 2
+  fRunningSpeed: 3
+  fWalkingSpeed: 0.5
+  fStandardSpeed: 1
+  fJumpSpeed: 0
+  fGravity: 20
+  fRotSpeed: 90
+  fCrouchDeltaHeight: 0.15
+  fStamina: 10
+  fStaminaRecoveryRate: 1
+  fStaminaSpendingRate: 5
+  bTired: 0
 --- !u!114 &963194231
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -343,13 +351,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 146f18fb7cf3e1547b154f162aa68e87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  axes: 0
-  sensitivityX: 2.5
-  sensitivityY: 2.5
-  minimumX: -360
-  maximumX: 360
-  minimumY: -60
-  maximumY: 60
+  fSensitivityX: 5
+  fSensitivityY: 5
+  fSensitivityZ: 2
+  fMinimumX: -360
+  fMaximumX: 360
+  fMinimumY: -60
+  fMaximumY: 60
+  fMinimumZ: -45
+  fMaximumZ: 45
+  fReturnRate: 5
+  bRestoreRotation: 0
 --- !u!1 &973307306
 GameObject:
   m_ObjectHideFlags: 0
@@ -458,7 +470,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &2068343821
 MonoBehaviour:
   m_ObjectHideFlags: 0
