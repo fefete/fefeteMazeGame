@@ -36,6 +36,8 @@ public class CharacterMovement : MonoBehaviour
     float m_fPositionZ;
     float m_fInclinedTime;
     Coroutine m_fInclineCoroutine = null;
+    [HideInInspector]
+    public bool m_bInclined = false;
 
     private Vector3 vMoveDirection = Vector3.zero;
 
@@ -51,12 +53,20 @@ public class CharacterMovement : MonoBehaviour
     {
         if ((Input.GetAxis("Incline") != 0))
         {
+            if (m_bInclined)
+            {
+                if (m_fInclineCoroutine == null)
+                    m_fInclineCoroutine = StartCoroutine(MoveToInclination(Input.GetAxis("Incline"), 1));
+            }
             return;
         }
         else
         {
-
+            if(m_fInclineCoroutine != null)
+                StopCoroutine(m_fInclineCoroutine);
+            m_fInclineCoroutine = null;
         }
+
         if (Input.GetKey(KeyCode.LeftShift) && !m_bTired)
         {
             if (eState != CharacterMovementState.Running)
@@ -138,19 +148,19 @@ public class CharacterMovement : MonoBehaviour
             case CharacterMovementState.Default:
                 if (_eOldState == CharacterMovementState.Walking)
                 {
-                    GetComponent<CharacterController>().radius += m_fCrouchDeltaHeight;
+                    m_oCharacterController.radius += m_fCrouchDeltaHeight;
                     //GetComponent<BoxCollider>().center += new Vector3(0, m_fCrouchDeltaHeight / 2, 0);
                 }
                 break;
             case CharacterMovementState.Running:
                 if (_eOldState == CharacterMovementState.Walking)
                 {
-                    GetComponent<CharacterController>().radius += m_fCrouchDeltaHeight;
+                    m_oCharacterController.radius += m_fCrouchDeltaHeight;
                     //GetComponent<BoxCollider>().center += new Vector3(0, m_fCrouchDeltaHeight / 2, 0);
                 }
                 break;
             case CharacterMovementState.Walking:
-                GetComponent<CharacterController>().radius -= m_fCrouchDeltaHeight;
+                m_oCharacterController.radius -= m_fCrouchDeltaHeight;
                 //GetComponent<BoxCollider>().center -= new Vector3(0, m_fCrouchDeltaHeight / 2, 0);
                 break;
         }
@@ -166,15 +176,17 @@ public class CharacterMovement : MonoBehaviour
         float fPercentage = 0;
         Vector3 vDir;
         if (_fPositionToMove > 0)
-            vDir = transform.right;
-        else
             vDir = -transform.right;
+        else
+            vDir = transform.right;
+
+        Vector3 vTargetPos = transform.position + (vDir / 10);
+        vTargetPos.y = transform.position.y;
         while (fPercentage < 1)
         {
-            fPercentage += Time.deltaTime / m_fInclinedTime;
-
+            fPercentage += Time.deltaTime / 1;
+            transform.position = Vector3.Lerp(transform.position, vTargetPos, fPercentage);
             yield return null;
         }
-        m_fInclineCoroutine = null;
     }
 }

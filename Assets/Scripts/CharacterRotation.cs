@@ -33,6 +33,7 @@ public class CharacterRotation : MonoBehaviour
     float m_fLerpPercentage = 0.0f;
 
     Coroutine m_fInclineCoroutine = null;
+    CharacterMovement m_oMovementComponent;
 
     void Update()
     {
@@ -47,6 +48,7 @@ public class CharacterRotation : MonoBehaviour
                 m_fInclineCoroutine = null;
                 m_fInclineCoroutine = StartCoroutine(InclineTo(m_fMaximumZ * Input.GetAxis("Incline"), m_fInclinedTime));
                 m_bInclined = true;
+                m_oMovementComponent.m_bInclined = true;
             }
         }
         else
@@ -58,6 +60,7 @@ public class CharacterRotation : MonoBehaviour
                 m_fInclineCoroutine = null;
                 m_fInclineCoroutine = StartCoroutine(InclineTo(0, m_fInclinedTime));
                 m_bInclined = false;
+                m_oMovementComponent.m_bInclined = false;
             }
         }
         if (!m_bInclined)
@@ -76,7 +79,7 @@ public class CharacterRotation : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
+        m_oMovementComponent = GetComponent<CharacterMovement>();
     }
 
     private IEnumerator InclineTo(float _fAnglesToRotate, float _fTimeToRotate)
