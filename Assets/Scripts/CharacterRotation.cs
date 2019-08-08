@@ -5,66 +5,90 @@ using UnityEngine;
 public class CharacterRotation : MonoBehaviour
 {
     enum RotationAxes { MouseXAndY = 0, MouseX = 1, MouseY = 2 }
-    RotationAxes axes = RotationAxes.MouseXAndY;
-    public float fSensitivityX = 15F;
-    public float fSensitivityY = 15F;
-    public float fSensitivityZ = 2F;
+    RotationAxes m_eAxes = RotationAxes.MouseXAndY;
+    public float m_fSensitivityX = 5F;
+    public float m_fSensitivityY = 5F;
+    public float m_fSensitivityZ = 2F;
 
-    public float fMinimumX = -360F;
-    public float fMaximumX = 360F;
+    public float m_fMinimumX = -360F;
+    public float m_fMaximumX = 360F;
 
-    public float fMinimumY = -60F;
-    public float fMaximumY = 60F;
+    public float m_fMinimumY = -60F;
+    public float m_fMaximumY = 60F;
 
-    public float fMinimumZ = -45F;
-    public float fMaximumZ = 45F;
+    public float m_fMinimumZ = -45F;
+    public float m_fMaximumZ = 45F;
 
-    float fRotationY = 0F;
-    float fRotationZ = 0F;
-    float frotationX = 0F;
+    float m_fRotationY = 0F;
+    float m_fRotationZ = 0F;
+    float m_fRotationX = 0F;
 
-    public float fReturnRate = 1.0f;
-    public bool bRestoreRotation = false;
+    public float m_fReturnRate = 1.0f;
+    public float m_fInclinedTime = 0.0f;
+    bool m_bRestoreRotation = false;
+
+    [HideInInspector]
+    public bool m_bInclined = false;
+
+    float m_fLerpPercentage = 0.0f;
+
+    Coroutine m_fInclineCoroutine = null;
+
     void Update()
     {
         if ((Input.GetAxis("Incline") != 0))
         {
-            fRotationZ += (Input.GetAxis("Incline")) * fSensitivityZ;
-            fRotationZ = Mathf.Clamp(fRotationZ, fMinimumZ, fMaximumZ);
-            bRestoreRotation = false;
-        }
-        else
-        {
-            bRestoreRotation = true;
-        }
-
-        if (axes == RotationAxes.MouseXAndY)
-        {
-            frotationX = transform.localEulerAngles.y + Input.GetAxis("Mouse X") * fSensitivityX;
-            fRotationY += Input.GetAxis("Mouse Y") * fSensitivityY;
-            fRotationY = Mathf.Clamp(fRotationY, fMinimumY, fMaximumY);
-        }
-
-        if (bRestoreRotation)
-        {
-            fRotationZ = Mathf.Lerp(fRotationZ, 0, Time.deltaTime * fReturnRate);
-            if (fRotationZ == 0)
+            if (!m_bInclined)
             {
-                bRestoreRotation = false;
+                if (m_fInclineCoroutine != null)
+                {
+                    StopCoroutine(m_fInclineCoroutine);
+                }
+                m_fInclineCoroutine = null;
+                m_fInclineCoroutine = StartCoroutine(InclineTo(m_fMaximumZ * Input.GetAxis("Incline"), m_fInclinedTime));
+                m_bInclined = true;
             }
-            transform.localEulerAngles = new Vector3(-fRotationY, frotationX, fRotationZ);
         }
         else
         {
-            transform.localEulerAngles = new Vector3(-fRotationY, frotationX, fRotationZ);
+            if (m_bInclined)
+            {
+                if (m_fInclineCoroutine != null)
+                    StopCoroutine(m_fInclineCoroutine);
+                m_fInclineCoroutine = null;
+                m_fInclineCoroutine = StartCoroutine(InclineTo(0, m_fInclinedTime));
+                m_bInclined = false;
+            }
+        }
+        if (!m_bInclined)
+        {
+            if (m_eAxes == RotationAxes.MouseXAndY)
+            {
+                m_fRotationX = transform.localEulerAngles.y + Input.GetAxis("Mouse X") * m_fSensitivityX;
+                m_fRotationY += Input.GetAxis("Mouse Y") * m_fSensitivityY;
+                m_fRotationY = Mathf.Clamp(m_fRotationY, m_fMinimumY, m_fMaximumY);
+            }
         }
 
+        transform.localEulerAngles = new Vector3(-m_fRotationY, m_fRotationX, m_fRotationZ);
     }
 
     // Start is called before the first frame update
     void Start()
     {
 
+    }
+
+    private IEnumerator InclineTo(float _fAnglesToRotate, float _fTimeToRotate)
+    {
+        float fLerpPercentage = 0;
+        while (fLerpPercentage < 1)
+        {
+            fLerpPercentage += Time.deltaTime / m_fInclinedTime;
+            m_fRotationZ = Mathf.Lerp(m_fRotationZ, _fAnglesToRotate, fLerpPercentage);
+            yield return null;
+        }
+        m_fInclineCoroutine = null;
     }
 
 }
