@@ -35,6 +35,7 @@ public class MazeGenerator : MonoBehaviour
     public GameObject m_oDownWall;
     public GameObject m_oFloor;
     public GameObject m_oPlayer;
+    public UnityEngine.AI.NavMeshSurface m_oSurface; 
     float m_fMaxX;
     float m_fMaxZ;
     float m_fMinX;
@@ -81,6 +82,7 @@ public class MazeGenerator : MonoBehaviour
         RecursiveBackTracking(oStartingCell);
         CreateMazeFromData();
         m_oPlayer.transform.position = new Vector3(oStartingCell.m_vPos.x, 1, oStartingCell.m_vPos.y);
+        m_oSurface.BuildNavMesh();
     }
 
 
@@ -119,7 +121,7 @@ public class MazeGenerator : MonoBehaviour
                 AttachWallToGameObject(CardinalDirs.m_oDown, oGameObject, c.m_bDeadEnd);
             }
         }
-        m_oFloor.transform.position = new Vector3(m_Width * 0.5f, 0, m_Width * 0.5f);
+        m_oFloor.transform.position = new Vector3(m_Width * 0.5f, 0.1f, m_Width * 0.5f);
         m_oFloor.transform.localScale = new Vector3(m_Width+5, 1f, m_Width+5);
     }
 
